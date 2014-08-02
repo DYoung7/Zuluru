@@ -108,7 +108,7 @@ Configure::write('debug', 0);
  * Defines the default error type when using the log() function. Used for
  * differentiating error logging and debugging. Currently PHP supports LOG_DEBUG.
  */
-	define('LOG_ERROR', 2);
+	define('LOG_ERROR', 0);
 
 /**
  * The preferred session handling method. Valid values:
@@ -201,12 +201,12 @@ Configure::write('debug', 0);
 /**
  * A random string used in security hashing methods.
  */
-	Configure::write('Security.salt', '65dab37d4a8eeab8af84853ee50cd098213e5d24');
+	Configure::write('Security.salt', 'My name is Inago Montoya, you killed my father, prepare to DIE!');
 
 /**
  * A random numeric string (digits only) used to encrypt/decrypt strings.
  */
-	Configure::write('Security.cipherSeed', '12899039336793363325799861302');
+	Configure::write('Security.cipherSeed', '8356923891145109000');
 
 /**
  * Apply timestamps with the last modified time to static assets (js, css, images).
@@ -245,7 +245,7 @@ Configure::write('debug', 0);
  * If you are on PHP 5.3 uncomment this line and correct your server timezone
  * to fix the date & time related errors.
  */
-	//date_default_timezone_set('UTC');
+	date_default_timezone_set('America/New_York');
 
 /**
  *

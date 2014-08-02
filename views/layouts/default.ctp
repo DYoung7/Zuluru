@@ -56,10 +56,11 @@
 
 		</div>
 		<table class="container"><tr>
+<?php if ($is_admin) { ?>
 		<td class="sidebar-left">
 			<?php echo $this->element("menus/$menu_element", array('menu_items' => $menu_items)); ?>
 
-		</td>
+		</td><?php } ?>
 		<td>
 		<div id="content">
 			<?php
