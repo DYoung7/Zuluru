@@ -69,11 +69,7 @@ class GameSlotsController extends AppController {
 			$this->redirect('/');
 		}
 		$this->Configuration->loadAffiliate($gameSlot['Field']['Facility']['Region']['affiliate_id']);
-		if (!empty($gameSlot['Game'])) {
-			Configure::load("sport/{$gameSlot['Game'][0]['Division']['League']['sport']}");
-		} else {
-			Configure::load("sport/{$gameSlot['DivisionGameslotAvailability'][0]['Division']['League']['sport']}");
-		}
+		Configure::load("sport/{$game['Division']['League']['sport']}");
 		$this->set(compact('gameSlot'));
 	}
 
@@ -125,6 +121,16 @@ class GameSlotsController extends AppController {
 					$this->Session->setFlash(__('You must select at least one game slot!', true), 'default', array('class' => 'info'));
 					$this->action = 'confirm';
 				} else {
+			                // Build the list of times to re-use
+                			$times = array();
+               			 	//Create games from start time thru end time
+               			 	$start = strtotime ($this->data['GameSlot']['game_date'].$this->data['GameSlot']['game_start']);
+                			$end = strtotime ($this->data['GameSlot']['game_date'].$this->data['GameSlot']['game_end']);
+                			$space = (($this->data['GameSlot']['length'] + $this->data['GameSlot']['buffer']) * 60);
+                			while ($start < $end) {
+                        			$times [] = date ('H:i:s', $start);
+                        			$start = $start + $space;
+                			}
 					// Build the list of dates to re-use
 					$weeks = array();
 					// Use noon as the time, to avoid problems when we switch between DST and non-DST dates
@@ -141,42 +147,45 @@ class GameSlotsController extends AppController {
 					// transaction, for safety.
 					$transaction = new DatabaseTransaction($this->GameSlot);
 
-					$game_end = (empty ($this->data['GameSlot']['game_end']) ? null : $this->data['GameSlot']['game_end']);
+					//$game_end = (empty ($this->data['GameSlot']['game_end']) ? null : $this->data['GameSlot']['game_end']);
 					foreach ($this->data['GameSlot']['Create'] as $field_id => $field_dates) {
-						foreach (array_keys ($field_dates) as $date) {
-							$sunset = local_sunset_for_date($weeks[$date]);
-							$actual_game_end = (empty ($this->data['GameSlot']['game_end']) ? $sunset : $this->data['GameSlot']['game_end']);
+						//foreach (array_keys ($field_dates) as $date) {
+						foreach ($field_dates as $date => $field_times) {
+						  foreach (array_keys ($field_times) as $time) {
+							//$actual_game_end = (empty ($this->data['GameSlot']['game_end']) ? local_sunset_for_date($weeks[$date]) : $this->data['GameSlot']['game_end']);
+							$new_start = $times[$time];
+							$ssss = strtotime ($new_start);
+							$eeee = ($ssss + ($this->data['GameSlot']['length'] * 60));
+							//$actual_game_end = (empty ($this->data['GameSlot']['game_end']) ? local_sunset_for_date($weeks[$date]) : $this->data['GameSlot']['game_end']);
+							$actual_game_end = date ('H:i:s', $eeee);
 
 							// Validate the end time
-							if ($actual_game_end < $this->data['GameSlot']['game_start']) {
-								$this->Session->setFlash(sprintf(__('Game end time of %s is before game start time of %s!', true), $actual_game_end, $this->data['GameSlot']['game_start']), 'default', array('class' => 'error'));
+							//if ($actual_game_end < $this->data['GameSlot']['game_start']) {
+							if ($actual_game_end < $new_start) {
+								//$this->Session->setFlash(sprintf(__('Game end time of %s is before game start time of %s!', true), $actual_game_end, $this->data['GameSlot']['game_start']), 'default', array('class' => 'error'));
+								$this->Session->setFlash(sprintf(__('Game end time of %s is before game start time of %s!', true), $actual_game_end, $new_start), 'default', array('class' => 'error'));
 								return;
-							}
-
-							$conditions = array(
-								'field_id' => $field_id,
-								'game_date' => $weeks[$date],
-								'OR' => array(
-									array(
-										'game_start >=' => $this->data['GameSlot']['game_start'],
-										'game_start <' => $actual_game_end,
-									),
-									array(
-										'game_start <' => $this->data['GameSlot']['game_start'],
-										'game_end >' => $this->data['GameSlot']['game_start'],
-									),
-								),
-							);
-							if ($sunset > $this->data['GameSlot']['game_start']) {
-								$conditions['OR'][] = array(
-									'game_start <' => $this->data['GameSlot']['game_start'],
-									'game_end' => null,
-								);
 							}
 
 							$overlap = $this->GameSlot->find('count', array(
 									'contain' => array(),
-									'conditions' => $conditions,
+									'conditions' => array(
+										'field_id' => $field_id,
+										'game_date' => $weeks[$date],
+										'OR' => array(
+											array(
+												//'game_start >=' => $this->data['GameSlot']['game_start'],
+												'game_start >=' => $new_start,
+												'game_start <' => $actual_game_end,
+											),
+											array(
+												//'game_start <' => $this->data['GameSlot']['game_start'],
+												'game_start <' => $new_start,
+												//'game_end >=' => $this->data['GameSlot']['game_start'],
+												'game_end >=' => $new_start,
+											),
+										),
+									),
 							));
 							if ($overlap) {
 								if (!isset($field)) {
@@ -184,7 +193,8 @@ class GameSlotsController extends AppController {
 									$field = $this->GameSlot->Field->read(null, $field_id);
 								}
 								$name = "{$field['Facility']['name']} {$field['Field']['num']}";
-								$this->Session->setFlash(sprintf(__('Detected a pre-existing conflict with the game slot to be created at %s on %s at %s. Unable to continue. (There may be more conflicts; this is only the first one detected.)', true), $this->data['GameSlot']['game_start'], $weeks[$date], $name), 'default', array('class' => 'error'));
+								//$this->Session->setFlash(sprintf(__('Detected a pre-existing conflict with the game slot to be created at %s on %s at %s. Unable to continue. (There may be more conflicts; this is only the first one detected.)', true), $this->data['GameSlot']['game_start'], $weeks[$date], $name), 'default', array('class' => 'error'));
+								$this->Session->setFlash(sprintf(__('Detected a pre-existing conflict with the game slot to be created at %s on %s at %s. Unable to continue. (There may be more conflicts; this is only the first one detected.)', true), $new_start, $weeks[$date], $name), 'default', array('class' => 'error'));
 								return;
 							}
 
@@ -192,8 +202,10 @@ class GameSlotsController extends AppController {
 								'GameSlot' => array(
 									'field_id' => $field_id,
 									'game_date' => $weeks[$date],
-									'game_start' => $this->data['GameSlot']['game_start'],
-									'game_end' => $game_end,
+									//'game_start' => $this->data['GameSlot']['game_start'],
+									'game_start' => $new_start,
+									//'game_end' => $game_end,
+									'game_end' => $actual_game_end,
 								),
 								'DivisionGameslotAvailability' => array(),
 							);
@@ -207,6 +219,7 @@ class GameSlotsController extends AppController {
 								return;
 							}
 						}
+				  	  }
 					}
 
 					if ($transaction->commit() !== false) {
@@ -440,8 +453,6 @@ class GameSlotsController extends AppController {
 					foreach ($gameSlot['Game'] as $i => $game) {
 						Cache::delete("division/{$game['Division']['id']}/standings", 'long_term');
 						Cache::delete("division/{$game['Division']['id']}/schedule", 'long_term');
-						Cache::delete('league/' . $this->GameSlot->Game->Division->league($game['Division']['id']) . '/standings', 'long_term');
-						Cache::delete('league/' . $this->GameSlot->Game->Division->league($game['Division']['id']) . '/schedule', 'long_term');
 					}
 
 					$resultMessage = __('Scores have been saved and game results posted.', true);

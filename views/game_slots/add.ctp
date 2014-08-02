@@ -9,11 +9,11 @@ $this->Html->addCrumb (__('Create', true));
 <div class="gameSlots form">
 <?php echo $this->Form->create('GameSlot', array('url' => Router::normalize($this->here)));?>
 	<fieldset>
-		<legend><?php
+ 		<legend><?php
 		printf(__('Add %s', true), __('Game Slots', true));
-		if (isset ($field)) {
-			echo ': ' . $field['Field']['long_name'];
-		}
+ 		if (isset ($field)) {
+ 			echo ': ' . $field['Field']['long_name'];
+ 		}
 		?></legend>
 <?php
 if (isset ($field)) {
@@ -71,7 +71,7 @@ if (isset ($field)) {
 
 			// Build the facility input
 			echo $this->Form->input("Facility.{$facility['id']}", array(
-					'div' => 'input checkbox field link_like',
+					'div' => 'input checkbox field',
 					'label' => $facility['name'],
 					'type' => 'checkbox',
 					'hiddenField' => false,
@@ -92,6 +92,16 @@ if (isset ($field)) {
 echo $this->Form->input('game_start', array(
 		'label' => __('Game start time', true),
 		'after' => $this->Html->para(null, __('Time for games in this timeslot to start.', true)),
+));
+echo $this->Form->input('length', array(
+		'label' => __('Game length', true),
+		'options' => make_options (array ('30', '60', '90', '120')),
+		'after' => $this->Html->para(null, __('Length of game (in minutes).', true)),
+));
+echo $this->Form->input('buffer', array(
+		'label' => __('Game buffer', true),
+		'options' => make_options (array ('10', '15')),
+		'after' => $this->Html->para(null, __('Buffer between games (in minutes).', true)),
 ));
 echo $this->Form->input('game_end', array(
 		'label' => __('Game timecap', true),
